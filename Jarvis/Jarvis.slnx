@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="../AI/AI.csproj" />
+  <Project Path="../Common/Common.csproj" Id="d3c2e17c-52a8-4432-adbe-997f1ff769ac" />
+  <Project Path="../UI/UI.csproj" />
+  <Project Path="Jarvis.csproj" />
+</Solution>

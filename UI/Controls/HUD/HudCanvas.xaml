@@ -1,0 +1,41 @@
+﻿<UserControl x:Class="UI.Controls.HUD.HudCanvas"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch">
+
+    <Grid ClipToBounds="True">
+
+        <Canvas x:Name="BackgroundLayer"
+                Panel.ZIndex="0"/>
+
+        <Canvas x:Name="GridLayer"
+                Panel.ZIndex="10"/>
+
+        <Canvas x:Name="ScanLayer"
+                Panel.ZIndex="20"/>
+        
+        <Canvas x:Name="GlowLayer"
+                Panel.ZIndex="30"/>
+
+        <Canvas x:Name="ReactorLayer"
+                Panel.ZIndex="40"/>
+
+        <Canvas x:Name="OverlayLayer"
+                Panel.ZIndex="60"/>
+        
+        <Canvas x:Name="InputLayer"
+                Panel.ZIndex="65"/>
+
+        <Canvas x:Name="EffectsLayer"
+                Panel.ZIndex="70"/>
+        
+        <Canvas x:Name="WidgetsLayer"
+                Panel.ZIndex="75"/>
+
+        <Canvas x:Name="PluginLayer"
+                Panel.ZIndex="80"/>
+
+    </Grid>
+
+</UserControl>

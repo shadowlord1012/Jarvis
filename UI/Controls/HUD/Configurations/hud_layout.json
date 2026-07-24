@@ -1,0 +1,48 @@
+{
+  "Panels": [
+
+    {
+      "Id": "ReactorCore",
+
+      "Title": "ARC REACTOR",
+
+      "Width": 500,
+      "Height": 500,
+
+
+      "Position": {
+        "X": 40,
+        "Y": 120,
+        "ZIndex": 1
+      },
+
+
+      "IsMovable": true,
+
+      "IsVisible": true
+    },
+
+
+    {
+      "Id": "SystemStatus",
+
+      "Title": "SYSTEM STATUS",
+
+      "Width": 350,
+      "Height": 250,
+
+
+      "Position": {
+        "X": 600,
+        "Y": 120,
+        "ZIndex": 2
+      },
+
+
+      "IsMovable": true,
+
+      "IsVisible": true
+    }
+
+  ]
+}
