@@ -4,6 +4,7 @@ using Jarvis.AI.Interfaces;
 using Jarvis.AI.Options;
 using Jarvis.AI.Prompt;
 using Jarvis.AI.Providers;
+using Jarvis.AI.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
@@ -21,6 +22,8 @@ namespace Jarvis.AI.Manager
 
         private readonly IToolExecutor _toolExecutor;
 
+        private readonly DocumentContextService _documentContextService;
+
         private readonly ContextOptions _options;
 
         private readonly object _lock = new();
@@ -31,6 +34,7 @@ namespace Jarvis.AI.Manager
             ILogService logger,
             IMemoryService memoryService,
             IToolExecutor toolExecutor,
+            DocumentContextService documentContextService,
             IOptions<ContextOptions> options)
         {
             _logger = logger;
@@ -38,6 +42,8 @@ namespace Jarvis.AI.Manager
             _memoryService = memoryService;
 
             _toolExecutor = toolExecutor;
+
+            _documentContextService = documentContextService;
 
             _options = options.Value;
         }
@@ -85,6 +91,16 @@ namespace Jarvis.AI.Manager
                 await AddMemoryContextAsync(
                     context,
                     cancellationToken);
+            }
+
+            // Add uploaded document context if available
+            if (_documentContextService.HasUploadedDocument)
+            {
+                var docContext = _documentContextService.GetUploadedDocumentContext();
+                if (docContext != null)
+                {
+                    context.Metadata["UploadedDocument"] = docContext;
+                }
             }
 
             if (_options.EnableTools)

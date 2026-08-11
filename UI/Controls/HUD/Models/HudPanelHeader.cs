@@ -6,7 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
 
-namespace UI.Controls.HUD.Dashboard
+namespace UI.Controls.HUD.Models
 {
     public class HudPanelHeader : Border
     {

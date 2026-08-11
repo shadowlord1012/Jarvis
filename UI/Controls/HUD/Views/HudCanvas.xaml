@@ -35,6 +35,9 @@
 
         <Canvas x:Name="PluginLayer"
                 Panel.ZIndex="80"/>
+        
+        <Canvas x:Name="ConfigOverlayLayer"
+                Panel.ZIndex="90"/>
 
     </Grid>
 

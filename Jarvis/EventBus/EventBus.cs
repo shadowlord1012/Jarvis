@@ -1,5 +1,6 @@
 ﻿using Common.Events.Interfaces;
 using System.Collections.Concurrent;
+using UI.Controls.HUD.Interfaces;
 
 namespace EventBus
 {
@@ -9,6 +10,12 @@ namespace EventBus
         new();
 
         private readonly object _lock = new();
+        private readonly ILogService _logger;
+
+        public EventBus(ILogService logger)
+        {
+            _logger = logger;
+        }
 
         public void Subscribe<TEvent>(
             IEventHandler<TEvent> handler)
@@ -70,7 +77,7 @@ namespace EventBus
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine(ex);
+                        _logger.LogError("EventBus", $"Error handling event: {ex.Message}");
                     }
                 });
 

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using UI.Controls.HUD.Configurations;
-using UI.Controls.HUD.Dashboard;
+using UI.Controls.HUD.Models;
 
 namespace UI.Controls.HUD.Managers
 {

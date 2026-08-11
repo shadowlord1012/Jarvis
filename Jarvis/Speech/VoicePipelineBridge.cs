@@ -20,6 +20,7 @@ namespace Jarvis.Speech
         private readonly ILogger<VoicePipelineBridge> _logger;
         private readonly ILogService _logService;
         private readonly VoicePipelineOptions _options;
+        private readonly SemaphoreSlim _processingLock = new SemaphoreSlim(1, 1);
 
         public VoicePipelineBridge(
             IVoicePipelineService voicePipelineService,
@@ -74,6 +75,14 @@ namespace Jarvis.Speech
                 return;
             }
 
+            // Prevent concurrent processing - use TryWait to avoid blocking
+            if (!await _processingLock.WaitAsync(0))
+            {
+                _logger.LogWarning("Duplicate input submission detected - already processing. Ignoring duplicate.");
+                _logService.LogWarning("VoicePipelineBridge", "Duplicate input submission ignored - already processing");
+                return;
+            }
+
             try
             {
                 _logger.LogInformation(
@@ -101,6 +110,10 @@ namespace Jarvis.Speech
 
                 _logService.LogError("VoicePipelineBridge",
                     $"Voice pipeline failed: {ex.Message}");
+            }
+            finally
+            {
+                _processingLock.Release();
             }
         }
     }

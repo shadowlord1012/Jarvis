@@ -114,8 +114,10 @@ namespace UI.Controls.HUD.Widgets
             if (_logPanel == null)
                 return;
 
-            if (entry.Severity == LogSeverity.Info || entry.Severity == LogSeverity.Summary)
-            {
+           // if (entry.Severity == LogSeverity.Info || 
+           //    entry.Severity == LogSeverity.Summary || 
+            //    entry.Severity == LogSeverity.Success)
+            //{
                 TextBlock row = new()
                 {
                     FontFamily = new FontFamily("Consolas"),
@@ -142,12 +144,12 @@ namespace UI.Controls.HUD.Widgets
                 }
 
                 _scrollViewer?.ScrollToEnd();
-            }
+            //}
         }
 
         public void Log(
             string message,            
-            string source = "JARVIS")
+            string source = "JARVIS -> ")
         {
             _logService.LogInfo(source,message);
         }
@@ -196,7 +198,7 @@ namespace UI.Controls.HUD.Widgets
                         LogSeverity.Info,
 
                     Message =
-                        "JARVIS > "
+                        "JARVIS -> "
                 };
 
 

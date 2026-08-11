@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
+using UI.Controls.HUD.Interfaces;
 
 namespace Jarvis.Testing
 {
@@ -17,65 +18,61 @@ namespace Jarvis.Testing
     {
         public static async Task TestTtsAsync(IServiceProvider serviceProvider)
         {
-            Console.WriteLine("======================");
-            Console.WriteLine("TTS AUDIO TEST STARTED");
-            Console.WriteLine("======================");
-            Console.WriteLine();
+            // Get logger service
+            var logger = serviceProvider.GetRequiredService<ILogService>();
+
+            logger.LogInfo("TtsTestRunner", "======================");
+            logger.LogInfo("TtsTestRunner", "TTS AUDIO TEST STARTED");
+            logger.LogInfo("TtsTestRunner", "======================");
 
             try
             {
                 // Get services
                 var ttsFactory = serviceProvider.GetRequiredService<TtsProviderFactory>();
                 var audioService = serviceProvider.GetRequiredService<IAudioService>();
-                var logger = serviceProvider.GetRequiredService<ILogger<AudioService>>();
                 var voiceOptions = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<VoicePipelineOptions>>();
 
-                Console.WriteLine($"TTS Provider: {voiceOptions.Value.TtsProvider}");
-                Console.WriteLine($"TTS Enabled: {voiceOptions.Value.EnableTts}");
-                Console.WriteLine();
+                logger.LogInfo("TtsTestRunner", $"TTS Provider: {voiceOptions.Value.TtsProvider}");
+                logger.LogInfo("TtsTestRunner", $"TTS Enabled: {voiceOptions.Value.EnableTts}");
 
                 // Get the provider
-                Console.WriteLine("Getting TTS provider...");
+                logger.LogInfo("TtsTestRunner", "Getting TTS provider...");
                 var provider = ttsFactory.GetProvider(voiceOptions.Value.TtsProvider);
-                Console.WriteLine($"Provider loaded: {provider.ProviderName}");
-                Console.WriteLine();
+                logger.LogInfo("TtsTestRunner", $"Provider loaded: {provider.ProviderName}");
 
                 // Generate audio
                 var testText = "Hello, this is a test of the audio playback system.";
-                Console.WriteLine($"Generating audio for: \"{testText}\"");
+                logger.LogInfo("TtsTestRunner", $"Generating audio for: \"{testText}\"");
 
                 var audioData = await provider.SynthesizeAsync(testText);
 
-                Console.WriteLine($"Audio generated: {audioData.Length} bytes");
-                Console.WriteLine();
+                logger.LogInfo("TtsTestRunner", $"Audio generated: {audioData.Length} bytes");
 
                 if (audioData.Length == 0)
                 {
-                    Console.WriteLine("ERROR: No audio data generated!");
+                    logger.LogError("TtsTestRunner", "ERROR: No audio data generated!");
                     return;
                 }
 
                 // Play audio
-                Console.WriteLine("Playing audio...");
+                logger.LogInfo("TtsTestRunner", "Playing audio...");
                 await audioService.PlayAsync(audioData);
 
-                Console.WriteLine();
-                Console.WriteLine("======================");
-                Console.WriteLine("TTS AUDIO TEST SUCCESS");
-                Console.WriteLine("======================");
+                logger.LogInfo("TtsTestRunner", "======================");
+                logger.LogSuccess("TtsTestRunner", "TTS AUDIO TEST SUCCESS");
+                logger.LogInfo("TtsTestRunner", "======================");
             }
             catch (Exception ex)
             {
-                Console.WriteLine();
-                Console.WriteLine("======================");
-                Console.WriteLine("TTS AUDIO TEST FAILED");
-                Console.WriteLine("======================");
-                Console.WriteLine($"Error: {ex.Message}");
-                Console.WriteLine($"Stack: {ex.StackTrace}");
+                logger.LogInfo("TtsTestRunner", "======================");
+                logger.LogError("TtsTestRunner", "TTS AUDIO TEST FAILED");
+                logger.LogInfo("TtsTestRunner", "======================");
+                logger.LogError("TtsTestRunner", $"Error: {ex.Message}");
+                logger.LogError("TtsTestRunner", $"Stack: {ex.StackTrace}");
 
                 if (ex.InnerException != null)
                 {
-                    Console.WriteLine($"Inner: {ex.InnerException.Message}");
+                    logger.LogError("TtsTestRunner", $"Inner: {ex.InnerException.Message}");
                 }
             }
         }

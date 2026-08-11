@@ -28,6 +28,8 @@ namespace UI.Controls.HUD.Enums
 
         Plugin = 80,
 
+        ConfigOverlay = 90,
+
         Debug = 100
     }
 }

@@ -43,16 +43,34 @@ namespace AI.Tool.WebSearch
                 var url =
                     $"https://html.duckduckgo.com/html/?q={encodedQuery}";
 
+                _logService.LogDebug(
+                    "WebSearch",
+                    $"Requesting URL: {url}");
+
                 using var response = await _httpClient.GetAsync(
                     url,
                     cancellationToken);
+
+                _logService.LogDebug(
+                    "WebSearch",
+                    $"Response status: {response.StatusCode}");
 
                 response.EnsureSuccessStatusCode();
 
                 var html = await response.Content.ReadAsStringAsync(
                     cancellationToken);
 
-                return ParseResults(html, maxResults);
+                _logService.LogDebug(
+                    "WebSearch",
+                    $"Received HTML length: {html.Length} characters");
+
+                var results = ParseResults(html, maxResults);
+
+                _logService.LogDebug(
+                    "WebSearch",
+                    $"ParseResults returned {results.Count} results from {html.Length} char HTML");
+
+                return results;
             }
             catch (OperationCanceledException)
             {
@@ -79,13 +97,39 @@ namespace AI.Tool.WebSearch
                 return results;
             }
 
+            // DEBUG: Save HTML response to file for inspection
+            try
+            {
+                var debugPath = Path.Combine(Path.GetTempPath(), $"duckduckgo_response_{DateTime.Now:yyyyMMdd_HHmmss}.html");
+                File.WriteAllText(debugPath, html);
+                Console.WriteLine($"[DuckDuckGo DEBUG] HTML response saved to: {debugPath}");
+            }
+            catch
+            {
+                // Ignore file writing errors - this is just for debugging
+            }
+
             // Basic HTML result extraction.
             // This intentionally avoids depending on a third-party
             // HTML parsing package.
 
+            // Try multiple parsing strategies as DuckDuckGo's HTML structure may vary
+
+            // Strategy 1: Look for result__body class (original approach)
             var resultBlocks = html.Split(
                 "result__body",
                 StringSplitOptions.RemoveEmptyEntries);
+
+            Console.WriteLine($"[DuckDuckGo DEBUG] Found {resultBlocks.Length} blocks containing 'result__body'");
+
+            // Strategy 2: If no results, try links-results wrapper
+            if (resultBlocks.Length <= 1)
+            {
+                resultBlocks = html.Split(
+                    new[] { "<div class=\"result", "<article class=\"result" },
+                    StringSplitOptions.RemoveEmptyEntries);
+                Console.WriteLine($"[DuckDuckGo DEBUG] Fallback strategy: Found {resultBlocks.Length} result divs");
+            }
 
             foreach (var block in resultBlocks)
             {
@@ -94,17 +138,36 @@ namespace AI.Tool.WebSearch
                     break;
                 }
 
-                var title = ExtractBetween(
-                    block,
-                    "result__a\">",
-                    "</a>");
+                // Try multiple title extraction patterns
+                var title = ExtractBetween(block, "result__a\">", "</a>");
+                if (string.IsNullOrWhiteSpace(title))
+                {
+                    title = ExtractBetween(block, "class=\"result__title\">", "</a>");
+                }
+                if (string.IsNullOrWhiteSpace(title))
+                {
+                    title = ExtractBetween(block, "<h2", "</h2>");
+                    if (!string.IsNullOrWhiteSpace(title))
+                    {
+                        // Extract text after the last '>'
+                        var lastBracket = title.LastIndexOf('>');
+                        if (lastBracket >= 0 && lastBracket < title.Length - 1)
+                        {
+                            title = title.Substring(lastBracket + 1);
+                        }
+                    }
+                }
 
                 var url = ExtractUrl(block);
 
-                var snippet = ExtractBetween(
-                    block,
-                    "result__snippet\">",
-                    "</a>");
+                // Try multiple snippet extraction patterns
+                var snippet = ExtractBetween(block, "result__snippet\">", "</a>");
+                if (string.IsNullOrWhiteSpace(snippet))
+                {
+                    snippet = ExtractBetween(block, "class=\"result__snippet\">", "</div>");
+                }
+
+                Console.WriteLine($"[DuckDuckGo DEBUG] Block {results.Count}: Title='{title?.Substring(0, Math.Min(50, title?.Length ?? 0))}', URL='{url?.Substring(0, Math.Min(80, url?.Length ?? 0))}'");
 
                 if (string.IsNullOrWhiteSpace(title) &&
                     string.IsNullOrWhiteSpace(snippet))

@@ -24,6 +24,7 @@ namespace Jarvis
     {
         private IHost? _host;
         private StartupStatusService _startupStatusService;
+        private ILogService _logger;
 
         protected override async void OnStartup(StartupEventArgs e)
         {
@@ -31,13 +32,14 @@ namespace Jarvis
 
             BootStrapper.Configure(builder);
 
-            // Print configuration diagnostics before building the host
-            Jarvis.Diagnostics.ConfigurationDiagnostics.PrintConfigurationDiagnostics(builder.Configuration);
-
             _host = builder.Build();
 
-
-            Console.WriteLine(_host.Services.ToString());
+            // Print configuration diagnostics after building the host
+            {
+                var logger = _host.Services.GetRequiredService<ILogService>();
+                var configDiag = new Jarvis.Diagnostics.ConfigurationDiagnostics(logger);
+                configDiag.PrintConfigurationDiagnostics(builder.Configuration);
+            }
 
             // Run diagnostic to verify bridge registration
             BridgeDiagnostic.TestRegistration(_host);
@@ -45,6 +47,7 @@ namespace Jarvis
             await _host.StartAsync();
 
             _startupStatusService = _host.Services.GetRequiredService<StartupStatusService>();
+            _logger = _host.Services.GetRequiredService<ILogService>();
 
             var window = _host.Services.GetRequiredService<MainWindow>();
 
@@ -93,15 +96,15 @@ namespace Jarvis
             {
                 try
                 {
-                    Console.WriteLine("=== Background initialization task STARTED ===");
+                    _logger.LogInfo("App", "=== Background initialization task STARTED ===");
                     await InitializeBackgroundServicesAsync();
-                    Console.WriteLine("=== Background initialization task COMPLETED ===");
+                    _logger.LogInfo("App", "=== Background initialization task COMPLETED ===");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"=== BACKGROUND INIT ERROR ===");
-                    Console.WriteLine($"Error: {ex.Message}");
-                    Console.WriteLine($"Stack: {ex.StackTrace}");
+                    _logger.LogError("App", "=== BACKGROUND INIT ERROR ===");
+                    _logger.LogError("App", $"Error: {ex.Message}");
+                    _logger.LogError("App", $"Stack: {ex.StackTrace}");
                     _startupStatusService.Error($"Initialization error: {ex.Message}");
                 }
             });
@@ -111,7 +114,7 @@ namespace Jarvis
 
         private async Task InitializeBackgroundServicesAsync()
         {
-            Console.WriteLine("=== InitializeBackgroundServicesAsync STARTED ===");
+            _logger.LogInfo("App", "=== InitializeBackgroundServicesAsync STARTED ===");
             _startupStatusService.Info("Initializing background services...");
 
             // Initialize services that don't block UI
@@ -127,6 +130,14 @@ namespace Jarvis
             var webSearchTool = _host.Services.GetRequiredService<WebSearchTool>();
             toolRegistry.Register(webSearchTool);
             _startupStatusService.Info($"  Registered tool: {webSearchTool.Name}");
+
+            var fileProcessingTool = _host.Services.GetRequiredService<AI.Tool.FileProcessing.FileProcessingTool>();
+            toolRegistry.Register(fileProcessingTool);
+            _startupStatusService.Info($"  Registered tool: {fileProcessingTool.Name}");
+
+            var documentProcessingTool = _host.Services.GetRequiredService<AI.Tool.DocumentProcessing.DocumentProcessingTool>();
+            toolRegistry.Register(documentProcessingTool);
+            _startupStatusService.Info($"  Registered tool: {documentProcessingTool.Name}");
 
             var pluginPath = Path.Combine(AppContext.BaseDirectory, "Plugins");
 
@@ -157,7 +168,7 @@ namespace Jarvis
 
                         foreach (var plugin in loader.Plugins)
                         {
-                            Console.WriteLine(plugin.Name);
+                            _logger.LogInfo("App", $"Plugin loaded: {plugin.Name}");
                             _startupStatusService.Success($"Loaded {plugin.Name}");
 
                             // Register tools from the plugin
@@ -200,7 +211,7 @@ namespace Jarvis
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error ending conversation: {ex.Message}");
+                        _logger?.LogError("App", $"Error ending conversation: {ex.Message}");
                     }
 
                     await _host.StopAsync(TimeSpan.FromSeconds(5));
@@ -211,7 +222,7 @@ namespace Jarvis
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error during shutdown: {ex.Message}");
+                _logger?.LogError("App", $"Error during shutdown: {ex.Message}");
             }
 
             base.OnExit(e);

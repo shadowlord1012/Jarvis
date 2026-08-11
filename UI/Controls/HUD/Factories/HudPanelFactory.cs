@@ -7,7 +7,6 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using UI.Controls.HUD.Abstract;
 using UI.Controls.HUD.Configurations;
-using UI.Controls.HUD.Dashboard;
 using UI.Controls.HUD.Models;
 
 namespace UI.Controls.HUD.Factories

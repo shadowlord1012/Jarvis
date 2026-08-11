@@ -10,8 +10,11 @@ using Jarvis.AI.Ollama;
 using Jarvis.AI.Options;
 using Jarvis.AI.Prompt;
 using Jarvis.AI.Providers;
+using Jarvis.AI.Services;
 using Jarvis.AI.Storage.MariaDB;
 using Jarvis.AI.Tool;
+using Jarvis.AI.Tool.FileProcessing;
+using Jarvis.AI.Tool.DocumentProcessing;
 using Jarvis.Audio;
 using Jarvis.Interfaces;
 using Jarvis.Speech;
@@ -57,20 +60,6 @@ namespace Jarvis
             builder.Services.Configure<TtsOptions>(builder.Configuration.GetSection("TTS"));
             builder.Services.Configure<VoicePipelineOptions>(builder.Configuration.GetSection("VoicePipeline"));
             builder.Services.Configure<WhisperOptions>(builder.Configuration.GetSection("Whisper"));
-
-            // Validate MariaDB configuration
-            var mariaDbSection = builder.Configuration.GetSection("MariaDB");
-            var connectionString = mariaDbSection.GetValue<string>("ConnectionString");
-
-            if (string.IsNullOrWhiteSpace(connectionString))
-            {
-                Console.WriteLine("WARNING: MariaDB ConnectionString is empty or not found in configuration!");
-                Console.WriteLine($"Configuration root keys: {string.Join(", ", builder.Configuration.AsEnumerable().Select(x => x.Key))}");
-            }
-            else
-            {
-                Console.WriteLine($"MariaDB configuration loaded successfully");
-            }
         }
 
         private static void ConfigureServices(HostApplicationBuilder builder)
@@ -140,6 +129,15 @@ namespace Jarvis
             builder.Services.AddHttpClient<IDuckDuckGoSearchClient, DuckDuckGoSearchClient>();
             builder.Services.AddSingleton<IWebSearchService, WebSearchService>();
             builder.Services.AddSingleton<WebSearchTool>();
+
+            // File processing tool
+            builder.Services.AddSingleton<FileProcessingTool>();
+
+            // Document processing tool
+            builder.Services.AddSingleton<DocumentProcessingTool>();
+
+            // Document context service
+            builder.Services.AddSingleton<DocumentContextService>();
 
             builder.Services.AddHttpClient<ILLMProvider, OllamaProvider>(
                 (serviceProvider, client) =>

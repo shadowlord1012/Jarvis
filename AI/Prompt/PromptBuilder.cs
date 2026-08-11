@@ -116,6 +116,22 @@ namespace Jarvis.AI.Prompt
             builder.AppendLine();
 
             if (context.Metadata.TryGetValue(
+                    "UploadedDocument",
+                    out var uploadedDoc))
+            {
+                builder.AppendLine(
+                    "CONTEXT: User has uploaded a document:");
+
+                builder.AppendLine(
+                    uploadedDoc?.ToString());
+
+                builder.AppendLine(
+                    "When the user asks to process the document, use the document_processing tool with the specified filePath.");
+
+                builder.AppendLine();
+            }
+
+            if (context.Metadata.TryGetValue(
                     "MemoryContext",
                     out var memoryContext))
             {

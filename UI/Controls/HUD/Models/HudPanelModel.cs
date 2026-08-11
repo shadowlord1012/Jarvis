@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace UI.Controls.HUD.Dashboard
+namespace UI.Controls.HUD.Models
 {
     public sealed class HudPanelModel
     {

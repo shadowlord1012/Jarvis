@@ -48,6 +48,13 @@ namespace UI.Controls.HUD.Models
 
         #region Public Logging
 
+        public void LogBackground(
+            string source,
+            string message)
+        {
+            Add(LogSeverity.Background, source, message);
+        }
+
         public void LogInfo(
             string source,
             string message)
@@ -134,7 +141,7 @@ namespace UI.Controls.HUD.Models
                 _entries.TryDequeue(out _);
             }
 
-                WriteToDisk(entry);
+            WriteToDisk(entry);
 
             // Raise the EntryAdded event
             EntryAdded?.Invoke(

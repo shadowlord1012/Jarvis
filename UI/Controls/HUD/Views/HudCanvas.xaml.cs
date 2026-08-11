@@ -1,21 +1,13 @@
-﻿using AI;
-using AI.Interfaces;
+﻿using AI.Interfaces;
+using Jarvis.AI.Interfaces;
+using Jarvis.AI.Tool;
+using Jarvis.AI.Tool.DocumentProcessing;
+using Jarvis.AI.Services;
 using Jarvis.UI.Controls.HUD.Models;
 using Jarvis.UI.Controls.HUD.Widgets;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using UI.Controls.HUD.Configurations;
-using UI.Controls.HUD.Dashboard;
 using UI.Controls.HUD.Enums;
 using UI.Controls.HUD.Interfaces;
 using UI.Controls.HUD.Managers;
@@ -24,6 +16,8 @@ using UI.Controls.HUD.Renderers;
 using UI.Controls.HUD.Renderers.HudRenderers;
 using UI.Controls.HUD.Renderers.ReactorRenderers;
 using UI.Controls.HUD.Widgets;
+using Microsoft.Extensions.Configuration;
+using System.IO;
 
 namespace UI.Controls.HUD
 {
@@ -34,13 +28,18 @@ namespace UI.Controls.HUD
     {
         private HudLayerManager? _layerManager;
         private HudRenderer? _renderer;
-        //private DashboardManager _dashboard;
         private ReactorManager _reactorManager;
         private ReactorRenderer _reactorRenderer;
         private HudWidgetManager _hudWidgetManager;
         private readonly ILogService _logService;
 
         private readonly IAIService _aiService;
+
+        private readonly DocumentProcessingTool _documentProcessingTool;
+
+        private readonly IConversationService _conversationService;
+
+        private readonly DocumentContextService _documentContextService;
 
         private HudInputWidget _inputWidget;
 
@@ -50,14 +49,30 @@ namespace UI.Controls.HUD
 
         private WidgetConfigurationManager _widgetConfigurationManager;
 
+        private readonly IConfiguration _configuration;
+
         private DateTime _lastFrame;
+
+        // Store uploaded document info
+        private string? _uploadedDocumentContent;
+        private string? _uploadedDocumentFileName;
 
         public AIInputController AIInputController => _aiInputController;
 
-        public HudCanvas(IAIService aiService, ILogService logService)
+        public HudCanvas(
+            IAIService aiService, 
+            ILogService logService, 
+            IConfiguration configuration,
+            DocumentProcessingTool documentProcessingTool,
+            IConversationService conversationService,
+            DocumentContextService documentContextService)
         {
             _aiService = aiService;
             _logService = logService;
+            _configuration = configuration;
+            _documentProcessingTool = documentProcessingTool;
+            _conversationService = conversationService;
+            _documentContextService = documentContextService;
             _widgetConfigurationManager = new WidgetConfigurationManager(_logService);
             InitializeComponent();
             Loaded += OnLoaded;
@@ -89,6 +104,7 @@ namespace UI.Controls.HUD
             _layerManager.Register(HudLayer.Plugin, PluginLayer);
             _layerManager.Register(HudLayer.Widgets, WidgetsLayer);
             _layerManager.Register(HudLayer.Input, InputLayer);
+            _layerManager.Register(HudLayer.ConfigOverlay, ConfigOverlayLayer);
 
             //----------------------------------------
             // Create Renderer Manager
@@ -101,12 +117,6 @@ namespace UI.Controls.HUD
                 theme);
 
             //----------------------------------------
-            // Register Widgets
-            //----------------------------------------
-
-            //_dashboard = new DashboardManager();
-
-            //----------------------------------------
             // Register Renderers
             //----------------------------------------
 
@@ -116,7 +126,6 @@ namespace UI.Controls.HUD
             _renderer.RegisterRenderer(new GridRenderer(_layerManager));
             _renderer.RegisterRenderer(new GlowRenderer(_layerManager, theme));
             _renderer.RegisterRenderer(new HudGlowRenderer(_layerManager));
-            //_renderer.RegisterRenderer(new DashboardPanelRenderer(_layerManager, _dashboard));
 
             //----------------------------------------
             // Reactor Renderers
@@ -144,8 +153,92 @@ namespace UI.Controls.HUD
             _hudWidgetManager.Register(new ClockWidget(_layerManager.GetLayer(HudLayer.Widgets),theme,_widgetConfigurationManager.GetWidgetConfiguration("Clock")));
             _hudWidgetManager.Register(new SystemStatusWidget(_layerManager.GetLayer(HudLayer.Widgets),theme,_widgetConfigurationManager.GetWidgetConfiguration("SystemStatus"), new SystemStatus(),_logService));
             _hudWidgetManager.Register(new LogWidget(_layerManager.GetLayer(HudLayer.Widgets), theme, _widgetConfigurationManager.GetWidgetConfiguration("Log"), _logService));
-            _hudWidgetManager.Register(new ConfigurationWidget(_layerManager.GetLayer(HudLayer.Widgets), theme, _widgetConfigurationManager.GetWidgetConfiguration("Configuration"), _logService));
+
+            var configWidget = new ConfigurationWidget(_layerManager.GetLayer(HudLayer.Widgets), theme, _widgetConfigurationManager.GetWidgetConfiguration("Configuration"), _logService);
+            var configOverlayWidget = new ConfigurationOverlayWidget(_layerManager.GetLayer(HudLayer.ConfigOverlay), theme, _widgetConfigurationManager.GetWidgetConfiguration("ConfigurationOverlay"), _logService, _configuration);
+            var docWidget = new DocumentUploadWidget(_layerManager.GetLayer(HudLayer.Widgets), theme, _widgetConfigurationManager.GetWidgetConfiguration("Documentation"), _logService);
+
+            // Wire up the configuration button to show/hide the overlay
+            configWidget.ButtonClicked += (sender, e) =>
+            {
+                if (configOverlayWidget.IsVisible)
+                {
+                    configOverlayWidget.Deactivate();
+                }
+                else
+                {
+                    configOverlayWidget.Activate();
+                }
+            };
+
+            // Wire up document upload widget
+            docWidget.DocumentUploaded += async (sender, e) =>
+            {
+                try
+                {
+                    _logService.LogInfo("HudCanvas", "=== DocumentUploaded EVENT RECEIVED ===");
+                    _logService.LogInfo("HudCanvas", $"Document uploaded: {e.FileName} ({e.Content.Length} chars)");
+
+                    // Store the document content and filename
+                    _uploadedDocumentContent = e.Content;
+                    _uploadedDocumentFileName = e.FileName;
+
+                    // Save to a temporary file for the tool to access
+                    string tempPath = Path.Combine(Path.GetTempPath(), "jarvis_uploaded_document.txt");
+                    await File.WriteAllTextAsync(tempPath, e.Content);
+                    _logService.LogInfo("HudCanvas", $"Document saved to temp file: {tempPath}");
+
+                    // Set the document context in the service (will be picked up by ContextManager)
+                    _documentContextService.SetUploadedDocument(tempPath, e.FileName);
+                    _logService.LogInfo("HudCanvas", "Document context set in DocumentContextService");
+
+                    // Try to add context to the conversation (non-blocking if DB fails)
+                    try
+                    {
+                        await _conversationService.AddAssistantMessageAsync(
+                            $"[SYSTEM: User uploaded document '{e.FileName}' ({e.Content.Length} chars). " +
+                            $"File saved to: {tempPath}. When user asks to process it, use document_processing tool with filePath parameter.]");
+                    }
+                    catch (Exception dbEx)
+                    {
+                        // Log but don't fail the upload if conversation persistence fails
+                        _logService.LogWarning("HudCanvas", $"Could not persist document context to conversation: {dbEx.Message}");
+                    }
+
+                    // Create a simple acknowledgment message (no AI inference needed)
+                    string responseMessage = $"Document '{e.FileName}' uploaded successfully with {e.Content.Length} characters. What would you like me to do with it? I can summarize it, translate it to another language, or analyze its contents.";
+
+                    // Trigger response started event for voice pipeline
+                    _aiInputController.GetType()
+                        .GetEvent("ResponseStarted")
+                        ?.GetRaiseMethod(true)
+                        ?.Invoke(_aiInputController, new object[] { _aiInputController, EventArgs.Empty });
+
+                    // Send the message directly through the response events (bypass AI to avoid tool loops)
+                    _aiInputController.GetType()
+                        .GetEvent("ResponseChunkReceived")
+                        ?.GetRaiseMethod(true)
+                        ?.Invoke(_aiInputController, new object[] { _aiInputController, responseMessage });
+
+                    // Fire ResponseCompleted
+                    _aiInputController.GetType()
+                        .GetEvent("ResponseCompleted")
+                        ?.GetRaiseMethod(true)
+                        ?.Invoke(_aiInputController, new object[] { _aiInputController, EventArgs.Empty });
+
+                    _logService.LogSuccess("HudCanvas", $"Document '{e.FileName}' loaded and ready for processing");
+                }
+                catch (Exception ex)
+                {
+                    _logService.LogError("HudCanvas", $"Error in DocumentUploaded handler: {ex.Message}\nStack: {ex.StackTrace}");
+                }
+            };
+
+            _hudWidgetManager.Register(configWidget);
+            _hudWidgetManager.Register(configOverlayWidget);
+            _hudWidgetManager.Register(docWidget);
             _hudWidgetManager.Register(_inputWidget);
+
 
 
             //----------------------------------------

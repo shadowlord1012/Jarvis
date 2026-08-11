@@ -2,6 +2,7 @@ using Jarvis.Speech;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
+using UI.Controls.HUD.Interfaces;
 
 namespace Jarvis.Diagnostics
 {
@@ -12,63 +13,75 @@ namespace Jarvis.Diagnostics
     {
         public static void TestRegistration(IHost host)
         {
-            Console.WriteLine("=== BRIDGE DIAGNOSTIC START ===");
+            var logger = host.Services.GetRequiredService<ILogService>();
+
+            logger.LogInfo("BridgeDiagnostic", "=== BRIDGE DIAGNOSTIC START ===");
 
             try
             {
-                Console.WriteLine("Testing if VoicePipelineBridge is registered...");
+                logger.LogInfo("BridgeDiagnostic", "Testing if VoicePipelineBridge is registered...");
                 var bridge = host.Services.GetService<VoicePipelineBridge>();
 
                 if (bridge == null)
                 {
-                    Console.WriteLine("❌ FAILED: VoicePipelineBridge is NOT registered in DI container!");
+                    logger.LogError("BridgeDiagnostic", "❌ FAILED: VoicePipelineBridge is NOT registered in DI container!");
                 }
                 else
                 {
-                    Console.WriteLine("✅ SUCCESS: VoicePipelineBridge instance obtained from DI");
-                    Console.WriteLine($"   Instance type: {bridge.GetType().FullName}");
+                    logger.LogSuccess("BridgeDiagnostic", "✅ SUCCESS: VoicePipelineBridge instance obtained from DI");
+                    logger.LogInfo("BridgeDiagnostic", $"   Instance type: {bridge.GetType().FullName}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ ERROR resolving VoicePipelineBridge:");
-                Console.WriteLine($"   Message: {ex.Message}");
-                Console.WriteLine($"   Type: {ex.GetType().Name}");
+                logger.LogError("BridgeDiagnostic", "❌ ERROR resolving VoicePipelineBridge:");
+                logger.LogError("BridgeDiagnostic", $"   Message: {ex.Message}");
+                logger.LogError("BridgeDiagnostic", $"   Type: {ex.GetType().Name}");
 
                 if (ex.InnerException != null)
                 {
-                    Console.WriteLine($"   Inner: {ex.InnerException.Message}");
+                    logger.LogError("BridgeDiagnostic", $"   Inner: {ex.InnerException.Message}");
                 }
             }
 
             // Test dependencies
-            Console.WriteLine("\nTesting VoicePipelineBridge dependencies:");
+            logger.LogInfo("BridgeDiagnostic", "Testing VoicePipelineBridge dependencies:");
 
             try
             {
                 var controller = host.Services.GetService<UI.Controls.HUD.Models.AIInputController>();
-                Console.WriteLine(controller == null 
-                    ? "❌ AIInputController: NOT FOUND" 
-                    : "✅ AIInputController: OK");
+                if (controller == null)
+                {
+                    logger.LogError("BridgeDiagnostic", "❌ AIInputController: NOT FOUND");
+                }
+                else
+                {
+                    logger.LogSuccess("BridgeDiagnostic", "✅ AIInputController: OK");
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ AIInputController: ERROR - {ex.Message}");
+                logger.LogError("BridgeDiagnostic", $"❌ AIInputController: ERROR - {ex.Message}");
             }
 
             try
             {
                 var pipeline = host.Services.GetService<Interfaces.IVoicePipelineService>();
-                Console.WriteLine(pipeline == null 
-                    ? "❌ IVoicePipelineService: NOT FOUND" 
-                    : "✅ IVoicePipelineService: OK");
+                if (pipeline == null)
+                {
+                    logger.LogError("BridgeDiagnostic", "❌ IVoicePipelineService: NOT FOUND");
+                }
+                else
+                {
+                    logger.LogSuccess("BridgeDiagnostic", "✅ IVoicePipelineService: OK");
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ IVoicePipelineService: ERROR - {ex.Message}");
+                logger.LogError("BridgeDiagnostic", $"❌ IVoicePipelineService: ERROR - {ex.Message}");
             }
 
-            Console.WriteLine("=== BRIDGE DIAGNOSTIC END ===\n");
+            logger.LogInfo("BridgeDiagnostic", "=== BRIDGE DIAGNOSTIC END ===");
         }
     }
 }

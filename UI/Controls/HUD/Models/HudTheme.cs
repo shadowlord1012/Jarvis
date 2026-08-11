@@ -102,6 +102,13 @@ namespace UI.Controls.HUD.Models
 
         #endregion
 
+        #region Font Families
+        public FontFamily TitleFontFamily { get; init; } = new FontFamily("Algerian");
+
+        public FontFamily BodyFontFamily { get; init; } = new FontFamily("Segoe UI");
+        public FontFamily AccentFontFamily { get; init; } = new FontFamily("Consolas");
+
+        #endregion
         public void Freeze()
         {
             FreezeBrush(PrimaryBrush);

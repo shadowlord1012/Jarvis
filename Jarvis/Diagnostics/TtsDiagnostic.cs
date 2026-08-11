@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using UI.Controls.HUD.Interfaces;
 
 namespace Jarvis.Diagnostics
 {
@@ -15,7 +16,7 @@ namespace Jarvis.Diagnostics
     {
         private readonly TtsProviderFactory _ttsFactory;
         private readonly IAudioService _audioService;
-        private readonly ILogger<TtsDiagnostic> _logger;
+        private readonly ILogService _logger;
         private readonly VoicePipelineOptions _voiceOptions;
         private readonly TtsOptions _ttsOptions;
 
@@ -24,7 +25,7 @@ namespace Jarvis.Diagnostics
             IAudioService audioService,
             IOptions<VoicePipelineOptions> voiceOptions,
             IOptions<TtsOptions> ttsOptions,
-            ILogger<TtsDiagnostic> logger)
+            ILogService logger)
         {
             _ttsFactory = ttsFactory;
             _audioService = audioService;
@@ -35,62 +36,62 @@ namespace Jarvis.Diagnostics
 
         public async Task RunDiagnosticsAsync(CancellationToken cancellationToken = default)
         {
-            _logger.LogInformation("=== TTS DIAGNOSTICS START ===");
+            _logger.LogInfo("TtsDiagnostic", "=== TTS DIAGNOSTICS START ===");
 
             // Check configuration
-            _logger.LogInformation("Voice Pipeline Enabled: {Enabled}", _voiceOptions.Enabled);
-            _logger.LogInformation("TTS Enabled: {Enabled}", _voiceOptions.EnableTts);
-            _logger.LogInformation("TTS Provider: {Provider}", _voiceOptions.TtsProvider);
-            _logger.LogInformation("Configured Provider: {Provider}", _ttsOptions.Provider);
+            _logger.LogInfo("TtsDiagnostic", $"Voice Pipeline Enabled: {_voiceOptions.Enabled}");
+            _logger.LogInfo("TtsDiagnostic", $"TTS Enabled: {_voiceOptions.EnableTts}");
+            _logger.LogInfo("TtsDiagnostic", $"TTS Provider: {_voiceOptions.TtsProvider}");
+            _logger.LogInfo("TtsDiagnostic", $"Configured Provider: {_ttsOptions.Provider}");
 
             try
             {
                 // Get the TTS provider
-                _logger.LogInformation("Getting TTS provider: {Provider}", _voiceOptions.TtsProvider);
+                _logger.LogInfo("TtsDiagnostic", $"Getting TTS provider: {_voiceOptions.TtsProvider}");
                 var provider = _ttsFactory.GetProvider(_voiceOptions.TtsProvider);
-                _logger.LogInformation("TTS Provider loaded: {ProviderName}", provider.ProviderName);
+                _logger.LogInfo("TtsDiagnostic", $"TTS Provider loaded: {provider.ProviderName}");
 
                 // Test TTS synthesis
                 var testText = "This is a test of the text to speech system.";
-                _logger.LogInformation("Synthesizing test text: {Text}", testText);
+                _logger.LogInfo("TtsDiagnostic", $"Synthesizing test text: {testText}");
 
                 var audioData = await provider.SynthesizeAsync(testText, cancellationToken);
 
-                _logger.LogInformation("Audio data generated. Size: {Size} bytes", audioData.Length);
+                _logger.LogInfo("TtsDiagnostic", $"Audio data generated. Size: {audioData.Length} bytes");
 
                 if (audioData.Length == 0)
                 {
-                    _logger.LogError("TTS provider returned empty audio data!");
+                    _logger.LogError("TtsDiagnostic", "TTS provider returned empty audio data!");
                     return;
                 }
 
                 // Test audio playback
-                _logger.LogInformation("Playing audio...");
+                _logger.LogInfo("TtsDiagnostic", "Playing audio...");
                 await _audioService.PlayAsync(audioData, cancellationToken);
 
-                _logger.LogInformation("Audio playback completed successfully!");
+                _logger.LogSuccess("TtsDiagnostic", "Audio playback completed successfully!");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "TTS Diagnostic failed");
+                _logger.LogError("TtsDiagnostic", $"TTS Diagnostic failed: {ex.Message}");
             }
 
-            _logger.LogInformation("=== TTS DIAGNOSTICS END ===");
+            _logger.LogInfo("TtsDiagnostic", "=== TTS DIAGNOSTICS END ===");
         }
 
         public void PrintConfiguration()
         {
-            Console.WriteLine("=== TTS CONFIGURATION ===");
-            Console.WriteLine($"Voice Pipeline Enabled: {_voiceOptions.Enabled}");
-            Console.WriteLine($"TTS Enabled: {_voiceOptions.EnableTts}");
-            Console.WriteLine($"TTS Provider: {_voiceOptions.TtsProvider}");
-            Console.WriteLine($"Stream Responses: {_voiceOptions.StreamResponses}");
-            Console.WriteLine($"Speak Sentence by Sentence: {_voiceOptions.SpeakSentenceBySentence}");
-            Console.WriteLine($"Configured Provider in TtsOptions: {_ttsOptions.Provider}");
-            Console.WriteLine($"EdgeTTS Voice: {_ttsOptions.EdgeTTS.Voice}");
-            Console.WriteLine($"ElevenLabs VoiceId: {_ttsOptions.ElevenLabs.VoiceId}");
-            Console.WriteLine($"ElevenLabs API Key Length: {_ttsOptions.ElevenLabs.ApiKey?.Length ?? 0}");
-            Console.WriteLine("========================");
+            _logger.LogInfo("TtsDiagnostic", "=== TTS CONFIGURATION ===");
+            _logger.LogInfo("TtsDiagnostic", $"Voice Pipeline Enabled: {_voiceOptions.Enabled}");
+            _logger.LogInfo("TtsDiagnostic", $"TTS Enabled: {_voiceOptions.EnableTts}");
+            _logger.LogInfo("TtsDiagnostic", $"TTS Provider: {_voiceOptions.TtsProvider}");
+            _logger.LogInfo("TtsDiagnostic", $"Stream Responses: {_voiceOptions.StreamResponses}");
+            _logger.LogInfo("TtsDiagnostic", $"Speak Sentence by Sentence: {_voiceOptions.SpeakSentenceBySentence}");
+            _logger.LogInfo("TtsDiagnostic", $"Configured Provider in TtsOptions: {_ttsOptions.Provider}");
+            _logger.LogInfo("TtsDiagnostic", $"EdgeTTS Voice: {_ttsOptions.EdgeTTS.Voice}");
+            _logger.LogInfo("TtsDiagnostic", $"ElevenLabs VoiceId: {_ttsOptions.ElevenLabs.VoiceId}");
+            _logger.LogInfo("TtsDiagnostic", $"ElevenLabs API Key Length: {_ttsOptions.ElevenLabs.ApiKey?.Length ?? 0}");
+            _logger.LogInfo("TtsDiagnostic", "========================");
         }
     }
 }

@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.Text;
 using System.Windows;
 using System.Windows.Media;
-using UI.Controls.HUD.Models;
 
-namespace UI.Controls.HUD.Dashboard
+namespace UI.Controls.HUD.Models
 {
     public class HudPanelDefinition
     {

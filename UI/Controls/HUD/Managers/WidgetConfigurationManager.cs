@@ -96,6 +96,25 @@ namespace UI.Controls.HUD.Managers
 
                 Visible = true
             };
+            WidgetConfiguration configurationOverlayConfig = new()
+            {
+                Name = "ConfigurationOverlay",
+                Type = "ConfigurationOverlay",
+                Dock = WidgetDock.TopLeft,
+                Size = new Size(800, 600),
+                Margin = new Thickness(15),
+                Visible = false // Start hidden, shown when config button is clicked
+            };
+            WidgetConfiguration documentationConfig = new()
+            {
+                Name = "Documentation",
+                Type = "Documentation",
+                Dock = WidgetDock.TopLeft,
+                Size = new Size(250, 150),
+                Margin = new Thickness(15),
+                Offset = new Point(0, 150), // Offset down so it doesn't overlap with other widgets
+                Visible = true 
+            };
 
 
             _widgetConfigurations.Add(InputConfig);
@@ -103,6 +122,8 @@ namespace UI.Controls.HUD.Managers
             _widgetConfigurations.Add(systemStatusConfig);
             _widgetConfigurations.Add(logConfig);
             _widgetConfigurations.Add(configurationConfig);
+            _widgetConfigurations.Add(configurationOverlayConfig);
+            _widgetConfigurations.Add(documentationConfig);
 
             foreach(var widgetConfiguration in _widgetConfigurations)
             {

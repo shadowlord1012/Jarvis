@@ -12,6 +12,7 @@ namespace UI.Controls.HUD.Enums
         Error,
         Debug,
         AI,
-        Summary
+        Summary,
+        Background
     }
 }

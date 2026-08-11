@@ -11,6 +11,8 @@ namespace UI.Controls.HUD.Interfaces
 
         IReadOnlyList<LogEntry> Entries { get; }
 
+        void LogBackground(string source, string message);
+
         void LogInfo(string source, string message);
 
         void LogSuccess(string source, string message);

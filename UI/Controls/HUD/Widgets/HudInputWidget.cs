@@ -124,12 +124,10 @@ namespace Jarvis.UI.Controls.HUD.Widgets
                     Text =
                         "JARVIS >",
 
-                    FontFamily =
-                        new FontFamily(
-                            "Consolas"),
+                    FontFamily = Theme.AccentFontFamily,
 
                     FontSize =
-                        14,
+                        20,
 
                     FontWeight =
                         FontWeights.Bold,
@@ -163,7 +161,7 @@ namespace Jarvis.UI.Controls.HUD.Widgets
                     Width =
                         Math.Max(
                             100,
-                            Configuration.Size.Width - 145),
+                            Configuration.Size.Width - 20),
 
                     Height =
                         Configuration.Size.Height - 10,
@@ -180,9 +178,7 @@ namespace Jarvis.UI.Controls.HUD.Widgets
                     CaretBrush =
                         Theme.PrimaryBrush,
 
-                    FontFamily =
-                        new FontFamily(
-                            "Consolas"),
+                    FontFamily = Theme.BodyFontFamily,
 
                     FontSize =
                         14,
@@ -209,11 +205,11 @@ namespace Jarvis.UI.Controls.HUD.Widgets
 
             Canvas.SetLeft(
                 _inputBox,
-                95);
+                10);
 
             Canvas.SetTop(
                 _inputBox,
-                5);
+                25);
 
             _root.Children.Add(
                 _inputBox);
@@ -321,7 +317,7 @@ namespace Jarvis.UI.Controls.HUD.Widgets
             string input =
                 _inputBox.Text.Trim();
 
-            _logger.LogInfo("Input", input);
+            _logger.LogInfo("Input -> ", input);
 
             if (string.IsNullOrWhiteSpace(
                     input))

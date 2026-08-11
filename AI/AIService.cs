@@ -28,6 +28,7 @@ namespace AI
         private readonly IAIStateManager _stateManager;
 
         private const int MaximumToolIterations = 10;
+        private const int MaxConsecutiveToolFailures = 3;
 
         public AIService(
             ILogService logger,
@@ -198,6 +199,10 @@ namespace AI
                 _promptBuilder.Build(
                     context);
 
+            // Circuit breaker: track consecutive failures per tool
+            var toolFailureCount = new Dictionary<string, int>();
+            var consecutiveFailures = 0;
+
             // Execute tool loop for streaming
             for (var iteration = 1;
                  iteration <= MaximumToolIterations;
@@ -274,6 +279,41 @@ namespace AI
                             cancellationToken);
 
                     _logger.LogDebug("AI Service", $"Tool {toolCall.Name} execution completed. Success: {toolResult.Success}");
+
+                    // Circuit breaker: track tool failures
+                    if (!toolResult.Success)
+                    {
+                        toolFailureCount.TryGetValue(toolCall.Name, out var count);
+                        toolFailureCount[toolCall.Name] = count + 1;
+                        consecutiveFailures++;
+
+                        _logger.LogWarning("AI Service", $"Tool {toolCall.Name} failed (consecutive failures: {consecutiveFailures}, tool-specific failures: {toolFailureCount[toolCall.Name]})");
+
+                        // Stop if the same tool has failed too many times
+                        if (toolFailureCount[toolCall.Name] >= MaxConsecutiveToolFailures)
+                        {
+                            _logger.LogError("AI Service", $"Circuit breaker triggered: {toolCall.Name} has failed {toolFailureCount[toolCall.Name]} times. Stopping tool execution loop.");
+
+                            yield return new LLMStreamChunk
+                            {
+                                Content = $"\n\nI apologize, but I'm having trouble with the {toolCall.Name} tool. It has failed multiple times. Please check the system logs for details.",
+                                IsComplete = false
+                            };
+
+                            yield return new LLMStreamChunk
+                            {
+                                Content = string.Empty,
+                                IsComplete = true
+                            };
+
+                            yield break;
+                        }
+                    }
+                    else
+                    {
+                        // Reset consecutive failures on success
+                        consecutiveFailures = 0;
+                    }
 
                     // Add tool result to messages
                     request.Messages.Add(

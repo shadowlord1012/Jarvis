@@ -2,32 +2,40 @@ using Microsoft.Extensions.Configuration;
 using System;
 using System.IO;
 using System.Linq;
+using UI.Controls.HUD.Interfaces;
 
 namespace Jarvis.Diagnostics
 {
     /// <summary>
     /// Diagnostic utility to verify configuration files and settings
     /// </summary>
-    public static class ConfigurationDiagnostics
+    public class ConfigurationDiagnostics
     {
-        public static void PrintConfigurationDiagnostics(IConfiguration configuration)
+        private readonly ILogService _logger;
+
+        public ConfigurationDiagnostics(ILogService logger)
         {
-            Console.WriteLine("==================== Configuration Diagnostics ====================");
-            Console.WriteLine($"Current Directory: {Directory.GetCurrentDirectory()}");
-            Console.WriteLine($"Base Directory: {AppContext.BaseDirectory}");
+            _logger = logger;
+        }
+
+        public void PrintConfigurationDiagnostics(IConfiguration configuration)
+        {
+            _logger.LogInfo("ConfigurationDiagnostics", "==================== Configuration Diagnostics ====================");
+            _logger.LogInfo("ConfigurationDiagnostics", $"Current Directory: {Directory.GetCurrentDirectory()}");
+            _logger.LogInfo("ConfigurationDiagnostics", $"Base Directory: {AppContext.BaseDirectory}");
 
             // Check if appsettings.json exists
             var appSettingsPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
-            Console.WriteLine($"appsettings.json exists: {File.Exists(appSettingsPath)}");
+            _logger.LogInfo("ConfigurationDiagnostics", $"appsettings.json exists: {File.Exists(appSettingsPath)}");
             if (File.Exists(appSettingsPath))
             {
-                Console.WriteLine($"  Location: {appSettingsPath}");
+                _logger.LogInfo("ConfigurationDiagnostics", $"  Location: {appSettingsPath}");
                 var fileInfo = new FileInfo(appSettingsPath);
-                Console.WriteLine($"  Size: {fileInfo.Length} bytes");
-                Console.WriteLine($"  Last Modified: {fileInfo.LastWriteTime}");
+                _logger.LogInfo("ConfigurationDiagnostics", $"  Size: {fileInfo.Length} bytes");
+                _logger.LogInfo("ConfigurationDiagnostics", $"  Last Modified: {fileInfo.LastWriteTime}");
             }
 
-            Console.WriteLine("\nConfiguration Keys:");
+            _logger.LogInfo("ConfigurationDiagnostics", "Configuration Keys:");
             var allKeys = configuration.AsEnumerable()
                 .Where(x => !string.IsNullOrEmpty(x.Value))
                 .OrderBy(x => x.Key);
@@ -38,47 +46,47 @@ namespace Jarvis.Diagnostics
                 var value = kvp.Key.Contains("Password", StringComparison.OrdinalIgnoreCase)
                     ? "***REDACTED***"
                     : kvp.Value;
-                Console.WriteLine($"  {kvp.Key} = {value}");
+                _logger.LogInfo("ConfigurationDiagnostics", $"  {kvp.Key} = {value}");
             }
 
             // Check MariaDB section specifically
-            Console.WriteLine("\nMariaDB Configuration:");
+            _logger.LogInfo("ConfigurationDiagnostics", "MariaDB Configuration:");
             var mariaDbSection = configuration.GetSection("MariaDB");
             if (mariaDbSection.Exists())
             {
-                Console.WriteLine("  ✓ MariaDB section found");
+                _logger.LogSuccess("ConfigurationDiagnostics", "  ✓ MariaDB section found");
                 var connectionString = mariaDbSection["ConnectionString"];
                 if (!string.IsNullOrWhiteSpace(connectionString))
                 {
-                    Console.WriteLine("  ✓ ConnectionString is configured");
+                    _logger.LogSuccess("ConfigurationDiagnostics", "  ✓ ConnectionString is configured");
                     // Parse and show details without password
                     try
                     {
                         var builder = new MySqlConnector.MySqlConnectionStringBuilder(connectionString);
-                        Console.WriteLine($"    Server: {builder.Server}");
-                        Console.WriteLine($"    Port: {builder.Port}");
-                        Console.WriteLine($"    Database: {builder.Database}");
-                        Console.WriteLine($"    UserId: {builder.UserID}");
-                        Console.WriteLine($"    SslMode: {builder.SslMode}");
+                        _logger.LogInfo("ConfigurationDiagnostics", $"    Server: {builder.Server}");
+                        _logger.LogInfo("ConfigurationDiagnostics", $"    Port: {builder.Port}");
+                        _logger.LogInfo("ConfigurationDiagnostics", $"    Database: {builder.Database}");
+                        _logger.LogInfo("ConfigurationDiagnostics", $"    UserId: {builder.UserID}");
+                        _logger.LogInfo("ConfigurationDiagnostics", $"    SslMode: {builder.SslMode}");
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"  ✗ Invalid connection string format: {ex.Message}");
+                        _logger.LogError("ConfigurationDiagnostics", $"  ✗ Invalid connection string format: {ex.Message}");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("  ✗ ConnectionString is empty or not found");
+                    _logger.LogWarning("ConfigurationDiagnostics", "  ✗ ConnectionString is empty or not found");
                 }
 
-                Console.WriteLine($"  TableName: {mariaDbSection["TableName"]}");
+                _logger.LogInfo("ConfigurationDiagnostics", $"  TableName: {mariaDbSection["TableName"]}");
             }
             else
             {
-                Console.WriteLine("  ✗ MariaDB section NOT found in configuration");
+                _logger.LogWarning("ConfigurationDiagnostics", "  ✗ MariaDB section NOT found in configuration");
             }
 
-            Console.WriteLine("===================================================================\n");
+            _logger.LogInfo("ConfigurationDiagnostics", "===================================================================");
         }
     }
 }
