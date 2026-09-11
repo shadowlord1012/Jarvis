@@ -8,8 +8,7 @@ Edge -> STT (Does have the workings with Eleven Labs with API Key)
 
 Whisper - > TTS
 
-Maria DB -> Working on getting it to have its own Database for Queries to lessen the load when accessing the LLM (Helps
-              Reduce the number of tokens if the question that is being asked.)
+Maria DB -> Working on getting it to have its own Database for Queries to lessen the load when accessing the LLM 
               
 100% LOCAL Can use the Eleven Labs API id needed but not required.
 
